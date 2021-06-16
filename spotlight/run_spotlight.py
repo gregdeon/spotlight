@@ -22,13 +22,16 @@ if __name__ == "__main__":
     parser.add_argument('--past_weights', nargs='*',                  help='List of paths to previous weights')
     parser.add_argument('--top_components', type=int,                 help='Number of PCA components to give to the adversary; default is unmodified embedding')
     parser.add_argument('--flip_objective', action='store_true',      help='Use spotlight to search for low-loss points')
+    parser.add_argument('--label_coeff',      type=float, default=0,    help='Regularization: penalty for entropy of labels in spotlight')
+    parser.add_argument('--prediction_coeff', type=float, default=0,    help='Regularization: penalty for entropy of predictions in spotlight')
     
     args = parser.parse_args()
 #     print(args)
     
     print('Loading inference results from %s' % args.inference_path)
-    embeddings, _, losses = utils.loadInferenceResults(args.inference_path)
+    embeddings, outputs, labels, losses = utils.loadInferenceResults(args.inference_path)
     num_points = len(embeddings)
+    predictions = outputs.argmax(axis=1)
     
     barrier_min_x = args.barrier_min_x if args.barrier_min_x else 0.05 * args.min_weight
     barrier_x_schedule = np.geomspace(num_points - args.min_weight, barrier_min_x, args.num_steps)
@@ -60,6 +63,10 @@ if __name__ == "__main__":
         args.print_every,
         args.device,
         args.flip_objective,
+        labels,
+        args.label_coeff,
+        predictions,
+        args.prediction_coeff,
     )
     
     print('Saving spotlight results to %s' % args.output_path)

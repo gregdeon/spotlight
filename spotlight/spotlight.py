@@ -24,9 +24,23 @@ def md_adversary_weights(mean, precision, x, losses):
     
     return (weights, weights_unnorm, weighted_loss, total_weight)
 
-def md_objective(mean, precision, x, losses, min_weight, barrier_x, barrier_scale, std_coeff=0.0, flip_objective=False, ):
+def md_objective(
+    mean, 
+    precision, 
+    x, 
+    losses, 
+    min_weight, 
+    barrier_x, 
+    barrier_scale, 
+    std_coeff=0.0, 
+    flip_objective=False, 
+    labels=None, 
+    label_coeff=0.0, 
+    predictions=None, 
+    prediction_coeff=0.0
+):
     # main objective
-    _, _, weighted_loss, total_weight = md_adversary_weights(mean, precision, x, losses)
+    weights, _, weighted_loss, total_weight = md_adversary_weights(mean, precision, x, losses)
     if flip_objective:
         weighted_loss = -weighted_loss
         
@@ -37,6 +51,17 @@ def md_objective(mean, precision, x, losses, min_weight, barrier_x, barrier_scal
         
     # regularization
     weighted_loss -= torch.sum(std_coeff / d)
+    if labels is not None:
+        categories = torch.arange(max(labels)+1).reshape(-1, 1)
+        label_probs = (labels == categories).float() @ weights
+        label_entropy = torch.distributions.Categorical(probs = label_probs).entropy() / np.log(2)
+        weighted_loss -= label_coeff * label_entropy
+    if predictions is not None:
+        categories = torch.arange(max(predictions)+1).reshape(-1, 1)
+        prediction_probs = (predictions == categories).float() @ weights
+        prediction_entropy = torch.distributions.Categorical(probs = prediction_probs).entropy() / np.log(2)
+        weighted_loss -= prediction_coeff * prediction_entropy
+
     return (weighted_loss, total_weight)
 
 class ResetOnPlateau(torch.optim.lr_scheduler.ReduceLROnPlateau):
@@ -60,7 +85,11 @@ def run_spotlight(
     scheduler_decay=0.5,
     print_every=20, 
     device='cpu',
-    flip_objective=False
+    flip_objective=False,
+    labels=None, 
+    label_coeff=0.0, 
+    predictions=None, 
+    prediction_coeff=0.0,
 ):
     x = torch.tensor(embeddings, device=device)
     y = torch.tensor(losses, device=device)
@@ -95,7 +124,7 @@ def run_spotlight(
             d = torch.exp(log_d)
             precision_matrix = V @ torch.diag(d) @ torch.inverse(V)
 
-        objective, total_weight = md_objective(mean, precision_matrix, x, y, min_weight, barrier_x_schedule[t], barrier_scale, flip_objective=flip_objective)
+        objective, total_weight = md_objective(mean, precision_matrix, x, y, min_weight, barrier_x_schedule[t], barrier_scale, 0.0, flip_objective, labels, label_coeff, predictions, prediction_coeff)
         neg_objective = -objective
         neg_objective.backward()    
         optimizer.step()

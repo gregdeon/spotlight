@@ -1,12 +1,13 @@
 import pickle
 
 # Saving/loading for inference and spotlight
-def saveInferenceResults(fname, embeddings, outputs, losses):
+def saveInferenceResults(fname, embeddings, outputs, labels, losses):
     with open(fname, 'wb+') as f:
         # Don't bother compressing - model outputs don't tend to have a ton of structure
         pickle.dump({
             'embeddings': embeddings,
             'outputs': outputs,
+            'labels': labels,
             'losses': losses,
         }, f)
     
@@ -16,10 +17,17 @@ def loadInferenceResults(fname):
         
     embeddings = results['embeddings'].numpy()
     losses = results['losses'].numpy()
+    
     outputs = results['outputs']
     if outputs is not None:
         outputs = outputs.numpy()
-    return (embeddings, outputs, losses)
+    
+    if 'labels' in results:
+        labels = results['labels'].numpy()
+    else:
+        labels = None
+    
+    return (embeddings, outputs, labels, losses)
 
 def saveSpotlightResults(fname, weights, weights_unnorm=None, loss_history=None, weight_history=None, lr_history=None):
     with open(fname, 'wb+') as f:

@@ -33,7 +33,6 @@ if __name__ == "__main__":
     inference_results = utils.loadResults(args.inference_path)
     embeddings = inference_results.embeddings
     losses = inference_results.losses
-    num_points = len(embeddings)
     
     barrier_min_x = args.barrier_min_x if args.barrier_min_x else 0.05 * args.min_weight
     barrier_x_schedule = np.geomspace(num_points - args.min_weight, barrier_min_x, args.num_steps)

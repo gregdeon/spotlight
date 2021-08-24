@@ -13,14 +13,19 @@ def gaussian_probs(mean, precision, x):
     dists = torch.sum(((x - mean) @ precision) * (x - mean), axis=1)
     return torch.exp(-dists / 2)
 
-def md_adversary_weights(mean, precision, x, losses):
+def md_adversary_weights(mean, precision, x, losses, counts=None):
     # Calculate normalized weights, average loss, and spotlight size for current mean and precision settings
     # - mean, precision, x: as in gaussian_probs
     # - losses: (num_points) vector of losses
+    # - counts: (num_points) vector of number of copies of each point to include. defaults to all-ones.
+    
+    if counts is None:
+        counts = torch.ones_like(losses)
+    
     weights_unnorm = gaussian_probs(mean, precision, x)
-    total_weight = torch.sum(weights_unnorm)
-    weights = weights_unnorm / torch.sum(weights_unnorm)
-    weighted_loss = weights @ losses
+    total_weight = weights_unnorm @ counts
+    weights = weights_unnorm / total_weight
+    weighted_loss = (weights * counts) @ losses
     
     return (weights, weights_unnorm, weighted_loss, total_weight)
 
@@ -32,12 +37,12 @@ def md_objective(
     min_weight, 
     barrier_x, 
     barrier_scale, 
-    std_coeff=0.0, 
     flip_objective=False, 
+    counts=None,
     labels=None, 
     label_coeff=0.0, 
     predictions=None, 
-    prediction_coeff=0.0
+    prediction_coeff=0.0,
 ):
     # main objective
     weights, _, weighted_loss, total_weight = md_adversary_weights(mean, precision, x, losses)
@@ -50,7 +55,6 @@ def md_objective(
         weighted_loss -= barrier_penalty    
         
     # regularization
-    weighted_loss -= torch.sum(std_coeff / d)
     if labels is not None:
         categories = torch.arange(max(labels)+1).reshape(-1, 1)
         label_probs = (labels == categories).float() @ weights
@@ -86,6 +90,7 @@ def run_spotlight(
     print_every=20, 
     device='cpu',
     flip_objective=False,
+    counts=None,
     labels=None, 
     label_coeff=0.0, 
     predictions=None, 
@@ -124,7 +129,7 @@ def run_spotlight(
             d = torch.exp(log_d)
             precision_matrix = V @ torch.diag(d) @ torch.inverse(V)
 
-        objective, total_weight = md_objective(mean, precision_matrix, x, y, min_weight, barrier_x_schedule[t], barrier_scale, 0.0, flip_objective, labels, label_coeff, predictions, prediction_coeff)
+        objective, total_weight = md_objective(mean, precision_matrix, x, y, min_weight, barrier_x_schedule[t], barrier_scale, flip_objective, counts, labels, label_coeff, predictions, prediction_coeff)
         neg_objective = -objective
         neg_objective.backward()    
         optimizer.step()
@@ -148,7 +153,6 @@ def run_spotlight(
                         print('SVD failed (attempt %d/%d)' % (attempt+1, max_svd_attempts))
                         if attempt+1 == max_svd_attempts:
                             raise
-#                         np.save('failed_matrix.npy', V.detach().cpu().numpy())
                         
                 V.data = (svd.U @ svd.V).detach().clone().to(device)
             

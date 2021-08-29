@@ -43,7 +43,7 @@ if __name__ == "__main__":
         print('Reducing losses based on past weights...')
         for weight_path in args.past_weights:
             print('- %s' % weight_path)
-            weights_unnorm = utils.loadSpotlightResults(weight_path)[1]
+            weights_unnorm = utils.loadResults(weight_path).unnormalized_weights
             weights_unnorm /= max(weights_unnorm)
             losses = losses * (1 - weights_unnorm)
             
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     else:
         predictions = None
     
-    weights, weights_unnorm, objective_history, total_weight_history, lr_history = spotlight.run_spotlight(
+    weights, weights_unnorm, objective_history, total_weight_history, lr_history, mean_vector, precision_matrix = spotlight.run_spotlight(
         embeddings, 
         losses,
         args.min_weight,
@@ -77,8 +77,8 @@ if __name__ == "__main__":
         args.device,
         args.flip_objective,
         counts,
-        None,  # TODO: inference_results.labels?
-        0.0,   # TODO: args.label_coeff,
+        inference_results.labels,
+        args.label_coeff,
         predictions,
         args.prediction_coeff,
     )
@@ -87,8 +87,8 @@ if __name__ == "__main__":
     results = utils.SpotlightResults(
         weights = weights,
         unnormalized_weights = weights_unnorm,
-        spotlight_mean = None, # TODO
-        spotlight_precision = None, # TODO
+        spotlight_mean = mean_vector,
+        spotlight_precision = precision_matrix, 
         training_history = {
             'loss': objective_history,
             'weight': total_weight_history,

@@ -177,4 +177,4 @@ def run_spotlight(
     final_weights = weights.detach().cpu().numpy()
     final_weights_unnorm = weights_unnorm.detach().cpu().numpy()
     
-    return (final_weights, final_weights_unnorm, objective_history, total_weight_history, lr_history)
+    return (final_weights, final_weights_unnorm, objective_history, total_weight_history, lr_history, mean, precision_matrix)

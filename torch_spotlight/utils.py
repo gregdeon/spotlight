@@ -39,6 +39,20 @@ class SpotlightResults:
     spotlight_mean: torch.Tensor
     spotlight_precision: torch.Tensor
     training_history: dict = None
+
+@dataclass
+class ClusteringResults:
+    """
+    Class for storing results of a clustering run.
+    
+    Fields:
+    - num_clusters: number of clusters 
+    - clusters: (num_examples) list of assignments of each point to a cluster
+    - cluster_pickle: TODO
+    """
+    num_clusters: int
+    clusters: torch.Tensor
+    cluster_pickle: str = None
         
 def saveResults(fname, results):
     """

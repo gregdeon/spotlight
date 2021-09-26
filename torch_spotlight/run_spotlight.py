@@ -3,8 +3,6 @@ import numpy as np
 from sklearn.decomposition import PCA
 
 from torch_spotlight import spotlight, utils
-# import spotlight
-# import utils
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run spotlight.')

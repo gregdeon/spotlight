@@ -144,3 +144,30 @@ class Wine(Dataset):
     def __getitem__(self, index: int):
         return self.data[index], self.label[index]
     
+class SST2(Dataset):
+    split_fnames = {
+        'train': 'train.csv',
+        'val':   'val.csv',
+        'test':  'test.csv',
+    }
+    
+    def __init__(
+        self,
+        root,
+        split = 'train',
+    ) -> None:
+        if split not in self.split_fnames.keys():
+            valid_splits = ', '.join(self.split_fnames.keys())
+            raise ValueError('Unrecognized split; valid splits are %s' % valid_splits)
+        
+        fname = os.path.join(root, self.split_fnames[split])
+        df = pd.read_csv(fname)
+        
+        self.data = df['sentence'].values
+        self.labels = df['label'].values
+        
+    def __len__(self):
+        return self.data.size
+    
+    def __getitem__(self, index: int):
+        return self.data[index], self.labels[index]

@@ -5,6 +5,10 @@ import numpy as np
 
 max_svd_attempts = 10
 
+def squared_distance_kernel(mean, precision, x):
+    dists = torch.sum(((x - mean) @ precision) * (x - mean), axis=1)
+    return torch.clamp(1 - dists, min=0)
+
 def gaussian_probs(mean, precision, x):
     # Similarity kernel: describe how similar each point in x is to mean as number in [0, 1] 
     # - mean: (dims) vector
@@ -22,7 +26,8 @@ def md_adversary_weights(mean, precision, x, losses, counts=None):
     if counts is None:
         counts = torch.ones_like(losses)
     
-    weights_unnorm = gaussian_probs(mean, precision, x)
+#     weights_unnorm = gaussian_probs(mean, precision, x)
+    weights_unnorm = squared_distance_kernel(mean, precision, x)
     total_weight = weights_unnorm @ counts
     weights = weights_unnorm / total_weight
     weighted_loss = (weights * counts) @ losses
@@ -55,16 +60,16 @@ def md_objective(
         weighted_loss -= barrier_penalty    
         
     # regularization
-    if labels is not None:
-        categories = torch.arange(max(labels)+1).reshape(-1, 1)
-        label_probs = (labels == categories).float() @ weights
-        label_entropy = torch.distributions.Categorical(probs = label_probs).entropy() / np.log(2)
-        weighted_loss -= label_coeff * label_entropy
-    if predictions is not None:
-        categories = torch.arange(max(predictions)+1).reshape(-1, 1)
-        prediction_probs = (predictions == categories).float() @ weights
-        prediction_entropy = torch.distributions.Categorical(probs = prediction_probs).entropy() / np.log(2)
-        weighted_loss -= prediction_coeff * prediction_entropy
+#     if labels is not None:
+#         categories = torch.arange(max(labels)+1).reshape(-1, 1)
+#         label_probs = (labels == categories).float() @ weights
+#         label_entropy = torch.distributions.Categorical(probs = label_probs).entropy() / np.log(2)
+#         weighted_loss -= label_coeff * label_entropy
+#     if predictions is not None:
+#         categories = torch.arange(max(predictions)+1).reshape(-1, 1)
+#         prediction_probs = (predictions == categories).float() @ weights
+#         prediction_entropy = torch.distributions.Categorical(probs = prediction_probs).entropy() / np.log(2)
+#         weighted_loss -= prediction_coeff * prediction_entropy
 
     return (weighted_loss, total_weight)
 

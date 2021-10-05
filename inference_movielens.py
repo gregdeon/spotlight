@@ -10,16 +10,16 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-import spotlight
-from spotlight.utils import *
-from spotlight.models import *
+import torch_spotlight
+from torch_spotlight.utils import *
+from torch_spotlight.models import *
 
 # Import functions from local copy of AutoEncSets
 module_path = os.path.abspath(os.path.join('spotlight/AutoEncSets'))
 if module_path not in sys.path:
     sys.path.append(module_path)
-import data.recsys as recsys
-from data import prep, collate_fn, CompletionDataset
+import AutoEncSets.data.recsys as recsys
+from AutoEncSets.data import prep, collate_fn, CompletionDataset
 
 data_dir = os.environ['DATA_DIR'] 
 ml_100k_dir = os.path.join(data_dir, 'movielens', 'ml-100k')
@@ -81,9 +81,12 @@ embeddings = torch.vstack(hidden_list)
 outputs = torch.hstack(output_list)
 losses = torch.hstack(loss_list)
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'movielens_val_deepset.pkl'),
-    embeddings = embeddings,
+results = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
     outputs    = outputs,
     losses     = losses,
+)
+saveResults(
+    os.path.join('inference_results', 'movielens_val_deepset.pkl'),
+    results
 )

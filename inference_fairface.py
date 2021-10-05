@@ -8,9 +8,9 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import spotlight
-from spotlight.datasets import *
-from spotlight.utils import *
+import torch_spotlight
+from torch_spotlight.datasets import *
+from torch_spotlight.utils import *
 
 data_dir = os.environ['DATA_DIR'] 
 fairface_dir = os.path.join(data_dir, 'fairface')
@@ -83,9 +83,14 @@ embeddings = torch.vstack(hidden_list)
 outputs = torch.hstack(output_list)
 losses = torch.hstack(loss_list)
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'fairface_val_resnet.pkl'),
-    embeddings = embeddings,
+results = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
     outputs    = outputs,
     losses     = losses,
 )
+saveResults(
+    os.path.join('inference_results', 'fairface_val_resnet.pkl'),
+    results
+)
+
+

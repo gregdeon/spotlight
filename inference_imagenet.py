@@ -8,8 +8,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import spotlight
-from spotlight.utils import *
+import torch_spotlight
+from torch_spotlight.utils import *
 
 data_dir = os.environ['DATA_DIR'] 
 imagenet_dir = os.path.join(data_dir, 'imagenet')
@@ -80,9 +80,12 @@ embeddings = torch.vstack(hidden_list)
 outputs = torch.hstack(output_list)
 losses = torch.hstack(loss_list)
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'imagenet_val_resnet.pkl'),
-    embeddings = embeddings,
+results = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
     outputs    = outputs,
     losses     = losses,
+)
+saveResults(
+    os.path.join('inference_results', 'imagenet_val_resnet.pkl'),
+    results
 )

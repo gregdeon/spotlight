@@ -8,15 +8,15 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import spotlight
-from spotlight.datasets import *
-from spotlight.utils import *
-from spotlight.models import *
+import torch_spotlight
+from torch_spotlight.datasets import *
+from torch_spotlight.utils import *
+from torch_spotlight.models import *
 
 data_dir = os.environ['DATA_DIR'] 
 xray_dir = os.path.join(data_dir, 'xray')
 model_dir = os.environ['MODEL_DIR'] 
-model_path = os.path.join(model_dir, 'xray', 'cnn.pt')
+model_path = os.path.join(model_dir, 'xray', 'resnet.pt')
 
 # Load training set
 print('Loading dataset...')
@@ -38,7 +38,8 @@ dataloader = DataLoader(
 
 # Load model
 print('Loading model...')
-model = xray_model
+model = models.resnet18(pretrained=False, progress=False)
+model.fc = nn.Linear(512, 2) # Replace final linear layer
 
 # Load parameters
 checkpoint = torch.load(model_path, map_location='cpu') 
@@ -85,9 +86,12 @@ embeddings = torch.vstack(hidden_list)
 outputs = torch.hstack(output_list)
 losses = torch.hstack(loss_list)
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'xray_train_cnn.pkl'),
-    embeddings = embeddings,
+results = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
     outputs    = outputs,
     losses     = losses,
+)
+saveResults(
+    os.path.join('inference_results', 'xray_train_resnet.pkl'),
+    results,
 )

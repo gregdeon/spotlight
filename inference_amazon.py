@@ -8,8 +8,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import spotlight
-from spotlight.utils import *
+import torch_spotlight
+from torch_spotlight.utils import *
 
 # Note: we load cached copies of the dataset, tokenizer, and model to make inference work without an internet connection
 data_dir = os.environ['DATA_DIR'] 
@@ -77,9 +77,13 @@ embeddings = torch.vstack(hidden_list)
 outputs = torch.hstack(output_list)
 losses = torch.hstack(loss_list)
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'amazon_train_sst.pkl'),
-    embeddings = embeddings,
+results = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
     outputs    = outputs,
     losses     = losses,
 )
+saveResults(
+    os.path.join('inference_results', 'amazon_train_sst.pkl'),
+    results
+)
+

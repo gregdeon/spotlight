@@ -8,8 +8,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-import spotlight
-from spotlight.utils import *
+    import torch_spotlight
+from torch_spotlight.utils import *
 
 # Note: we load cached copies of the dataset, tokenizer, and model to make inference work without an internet connection
 data_dir = os.environ['DATA_DIR'] 
@@ -125,21 +125,32 @@ with torch.no_grad():
         hidden_list.append(hidden_layers['last_layer'].squeeze().flatten(start_dim=1).cpu())
         loss_list.append(loss)
 
-embeddings = torch.vstack(hidden_list)
+labels = torch.Tensor(label_list)
+embeddings = torch.stack(hidden_list)
+outputs = torch.stack(output_list)
 losses = torch.Tensor(loss_list)
+        
 
-# Project embeddings 
-print('Projecting embeddings...')
-old_dimensions = embeddings.shape[1]
-new_dimensions = 1000
+# note: [CLS] token is always first token in this dataset
+# can confirm with:
 
-torch.manual_seed(0)
-basis = torch.normal(0, 1, (old_dimensions, new_dimensions)) / new_dimensions
-projected_embeddings = embeddings.cuda() @ basis.cuda()
+# tokens_list = []
+# for i in tqdm(range(len(features))):
+#     tokens_list.append(torch.tensor(features[i:i+1]['input_ids']).flatten())
+# tokens = torch.stack(tokens_list)
+# cls_token_positions = (tokens == tokenizer.cls_token_id).sum(axis=0)
+# cls_token_positions[1:].any()
 
-saveInferenceResults(
-    fname      = os.path.join('inference_results', 'squad_val_bert.pkl'),
-    embeddings = projected_embeddings.cpu(),
-    outputs    = None,
+embeddings_cls = embeddings[:, 0, :]
+results_cls = InferenceResults(
+    embeddings = torch.clone(embeddings_cls),
+    outputs    = outputs,
     losses     = losses,
+    labels     = labels,
 )
+
+saveResults(
+    'inference_results/squad_val_bert.pkl',
+    results_cls
+)
+
